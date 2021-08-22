@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboards
+  labels:
+    app: dashboards
+spec:
+  selector:
+    app: dashboards
+  type: NodePort
+  ports:
+    - name: https
+      port: 5601
+      nodePort: 30003

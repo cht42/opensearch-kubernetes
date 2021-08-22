@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch
+  labels:
+    app: opensearch
+spec:
+  selector:
+    app: opensearch
+  type: NodePort
+  ports:
+    - name: http
+      port: 9200
+      nodePort: 30002
+    - name: transport
+      port: 9300

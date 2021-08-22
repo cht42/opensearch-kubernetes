@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: opensearch-data
+  labels:
+    app: opensearch
+    role: data
+spec:
+  replicas: 2
+  serviceName: opensearch-data
+  selector:
+    matchLabels:
+      app: opensearch
+      role: data
+  template:
+    metadata:
+      labels:
+        app: opensearch
+        role: data
+    spec:
+      initContainers:
+      - name: init-sysctl
+        image: busybox:latest
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144
+        securityContext:
+          privileged: true
+      containers:
+        - name: opensearch-data
+          image: opensearchproject/opensearch:1.0.0
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: node.name
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: ES_JAVA_OPTS
+            value: -Xms512m -Xmx512m
+          - name: node.data
+            value: "true"
+          - name: node.master
+            value: "false"
+          ports:
+            - containerPort: 9300
+              name: transport
+            - containerPort: 9200
+              name: http
+          volumeMounts:
+            - name: opensearch-data
+              mountPath: /usr/share/opensearch/data
+            - name: config
+              mountPath: /usr/share/opensearch/config/opensearch.yml
+              subPath: opensearch.yml
+            - name: ca-cert
+              mountPath: /usr/share/opensearch/config/certificates/ca
+              readOnly: true
+            - name: opensearch-cert
+              mountPath: /usr/share/opensearch/config/certificates/opensearch
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: opensearch-config
+        - name: ca-cert
+          secret:
+            secretName: ca-cert
+        - name: opensearch-cert
+          secret:
+            secretName: opensearch-cert
+  volumeClaimTemplates:
+  - metadata:
+      name: opensearch-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
